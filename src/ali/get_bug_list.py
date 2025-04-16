@@ -8,7 +8,7 @@ from config.database import read_db_config
 
 from config.api_keys import read_api_config
 
-class bug_query:
+class ali_bug_query:
     def __init__(self):
         pass
 
@@ -16,8 +16,8 @@ class bug_query:
     def create_client() -> devops20210625Client:
         api_config = read_api_config()
         config = open_api_models.Config(
-            access_key_id=api_config.id,
-            access_key_secret=api_config.secret
+            access_key_id=api_config.get('id'),
+            access_key_secret=api_config.get('secret')
         )
         config.endpoint = f'devops.cn-hangzhou.aliyuncs.com'
         return devops20210625Client(config)
@@ -25,7 +25,7 @@ class bug_query:
     @staticmethod
     def main(next_token, space_identifier):
         api_config = read_api_config()
-        client = bug_query.create_client()
+        client = ali_bug_query.create_client()
         list_workitems_request = devops_20210625_models.ListWorkitemsRequest(
             space_type='Project',
             space_identifier=space_identifier,
@@ -38,7 +38,7 @@ class bug_query:
         headers = {}
         try:
             # 复制代码运行请自行打印 API 的返回值
-            ListWorkitemsResponse = client.list_workitems_with_options(api_config.origin_id, list_workitems_request, headers, runtime)
+            ListWorkitemsResponse = client.list_workitems_with_options(api_config.get('origin_id'), list_workitems_request, headers, runtime)
             # a =  json.dumps(ListWorkitemsResponse)
             return ListWorkitemsResponse
         except Exception as error:
