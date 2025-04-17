@@ -20,38 +20,70 @@ def header_code_return():
     return spaceName_list, space_list
 
 def query_bug_data():
-    # db_config = read_db_config()
-    # conn = pymysql.connect(**db_config)
-    # cursor = conn.cursor()
-    # cursor.execute('delete from bug_data')
-    # conn.commit()
 
-    # header_code
+    # header_code 删除表中所有数据 获取连接池
     with closing(get_connection()) as conn:
         with conn.cursor() as cursor:
             cursor.execute('DELETE FROM bug_data')
             conn.commit()
-
-    # header_code_return(['2f47d6d1e8613e642d7abe6d99', '403c693bcbbb4e0af420b62f57', '75f7ce1c6cf94901b4f322ad22',
-    #                     '4eda1e506a21f3445c17ec0a9c', '76be871b30aac2b237a3657a83', 'd025ff035475f72da623dbaacc',
-    #                     'dbf8ae0e00a6d48a519088c486', '49495e17b3882ca0217fa920f7', '1149ac502df9de5291b17a4240',
-    #                     'ba3ba53c629658eb964a3e6c30', '9f78454755955a027b9593ca51', 'c71cd7bba19a51b7898e8c1b15',
-    #                     '59fb1b22e3a43f665ba993db6f', 'c0d2e0040c43d535656f5cb649'],
-    #                    ['ERP', '独立站项目组', '数据中台', '权限认证中心', 'OA', 'iBay', 'MRP', '扬腾仓储', '前端技术项目', 'TMS', 'OMS',
-    #                     '业财融合项目', '采购SRM项目', 'BPM'])
 
     header_code = header_code_return()[0]
     len_header_code = len(header_code)
     # 测试
     for header_item in range(len_header_code):
         print('header_item', header_item)
-        next_token = ''
+        next_token1 = ''
         header_code_result = header_code[header_item]
 
-        first_request = ali_bug_query.main(next_token, header_code_result)
+        first_request = ali_bug_query.main(next_token1, header_code_result)
         total_count = first_request.body.total_count
-        cout = int(total_count)
-        print('first_request', first_request)
-        print('total_count', total_count)
-        print('cout', cout)
+        count = int(total_count)
+
+        project = ''
+        next_token = ''
+        for i in range(count):
+            request_data = ali_bug_query.main(next_token, header_code[header_item])
+            next_token = request_data.body.next_token
+            max_results = len(request_data.body.workitems)
+            for y in range(max_results):
+                print('y----', y)
+                print('max_results---', max_results)
+                print('request_data-----', request_data)
+                print('next_token-----', next_token)
+                print('first_request-----', first_request)
+                print('count-----', count)
+                print('i-----', i)
+
+                batch_data = []
+                item = request_data.body.workitems[y]
+                detail_link = f'https://devops.aliyun.com/projex/project/{item.space_identifier}/bug/{item.identifier}'
+                row = ((
+                    item.assigned_to, item.category_identifier, item.creator,
+                    item.document, item.gmt_create, item.gmt_modified,
+                    item.identifier, item.logical_status, item.modifier,
+                    item.parent_identifier, item.serial_number, item.space_identifier,
+                    item.space_name, item.space_type, item.sprint_identifier,
+                    item.status, item.status_identifier, item.status_stage_identifier,
+                    item.subject, item.workitem_type_identifier, detail_link
+                ))
+
+                batch_data.append(row)
+
+                with closing(get_connection()) as conn:
+                    with conn.cursor() as cursor:
+                        cursor.executemany('''
+                            INSERT INTO bug_data (
+                                assignedTo, categoryIdentifier, creator, document,
+                                gmtCreate, gmtModified, identifier, logicalStatus,
+                                modifier, parentIdentifier, serialNumber, spaceIdentifier,
+                                spaceName, spaceType, sprintIdentifier, status,
+                                statusIdentifier, statusStageIdentifier, subject,
+                                workitemTypeIdentifier, detail_link
+                            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                        ''', batch_data)
+                        conn.commit()
+                        print('query_bug_data '+ str(header_item)+ ' '+str(project) +' ' + str(next_token)+ ' '+str(i*200+y))
+
+
+
 
